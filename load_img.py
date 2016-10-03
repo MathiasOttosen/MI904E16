@@ -2,8 +2,9 @@ import csv
 import os
 from skimage import io
 
-training_location = '/home/replacedleaf60/SW9/Training data/train/'
-label = '/home/replacedleaf60/SW9/Training data/metadata/train_info.csv'
+# The relative locations of the training images and their labels
+training_location = 'train/'
+labels = 'metadata/train_info.csv'
 
 
 # A method that loads the file names of all images in the
@@ -13,7 +14,8 @@ def load_filenames():
     lst = os.listdir(training_location)
     # This first sorts by lowest string value
     # then by length of the string
-    lst.sort(key=(str.lower | str.__len__))
+    lst.sort(key=str.lower)
+    lst.sort(key=str.__len__)
     return(lst)
 
 
@@ -26,7 +28,7 @@ def load_images():
 
 # A method for loading the labels into a dictionary
 def load_labels():
-    with open(label) as csvfile:
+    with open(labels) as csvfile:
         # We use the csv.DictReader object to format the
         # csvfile into a dictionary
         reader = csv.DictReader(csvfile)
