@@ -90,6 +90,7 @@ ENV/
 .ropeproject
 train/*
 metadata/*
+samples/*
 *.*~
 *.~*
 *~.*
