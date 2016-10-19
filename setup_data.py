@@ -23,11 +23,23 @@ def load_images(location='train/'):
                               conserve_memory=True))
 
 
-# A method for copying specific files from one directory into another
+# A method for copying specific files from
+# one directory into another for training and test
 # With the limit parameter we can limit the amount of images that are copied
-def copy_samples(filenames, limit=0, src='train/', dst='samples/'):
-    for s in filenames[:limit-1]:
-        shutil.copy2(src + s, dst)
+def copy_samples(filenames, limit=0, src='train/',
+                 train_dst='train_samples/', test_dst='test_samples/'):
+    # First we make another limiter for the test data,
+    # which is 10 percent of the training data
+    if limit is not 0:
+        test_limit = int(round(limit * 0.1))
+    else:
+        test_limit = int(round(len(filenames) * 0.1))
+
+    # First we copy the test images and then the training images
+    for s in filenames[:test_limit-1]:
+        shutil.copy2(src + s, test_dst)
+    for s in filenames[test_limit:limit-1]:
+        shutil.copy2(src + s, train_dst)
 
 
 # A method for loading the labels into a dictionary
