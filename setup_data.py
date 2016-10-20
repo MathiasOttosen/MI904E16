@@ -1,26 +1,32 @@
 import csv
-import os
 import shutil
 from skimage import io
+from skimage.color import rgb2gray
 
 
-# A method that loads the file names of all images in the
-# location and sorts them alphabetically
-def load_filenames(location='train/'):
-    # First we list all files in the directory
-    lst = os.listdir(location)
-    # This first sorts by lowest string value
-    # then by length of the string
-    lst.sort(key=str.lower)
-    lst.sort(key=str.__len__)
-    return(lst)
+# This method returns the filenames in the ImageCollection
+def get_filenames(images):
+    names = []
+    for s in images.files:
+        # Since the filenames in the ImageCollection is relative paths
+        # we split the string and return the last part of the string
+        # i.e. the actual filename
+        names.append(str.split(s, '/')[-1])
+    return(names)
 
 
-# A method for loading images from the disk
-def load_images(location='train/'):
+# A load function to be used with ImageCollection
+# It uses the standard imread but grayscales them first
+def imread_gray(f, img_num):
+    return rgb2gray(io.imread(f))
+
+
+# A method for loading a collection of images from the disk
+# The func parameter is the load function that is used in the ImageCollection
+def load_images(location='train/', func=io.imread):
     # We use the io.ImageCollection object with conserve_memory=True
     return(io.ImageCollection(location + '*.jpg',
-                              conserve_memory=True))
+                              conserve_memory=True, load_func=func))
 
 
 # A method for copying specific files from
@@ -72,3 +78,22 @@ def find_filenames_by_style(style, labels=None):
             continue
 
     return(fnames)
+
+
+# A class for handling the features extracted from the images
+# Because the images would be too much to have in memory
+# this container makes use of the ImageCollection object and
+# applies the extraction method givin by the extract paramater
+class FeatureCollection:
+    # The class is instantiated with an ImageCollection and an extraction method
+    def __init__(self, coll, extract):
+        self.image_collection = coll
+        self.extraction_method = extract
+
+    def __len__(self):
+        return(len(self.image_collection))
+
+    # Here we apply the extraction method on the image returned from the
+    # ImageCollection
+    def __getitem__(self, key):
+        return(self.extraction_method(self.image_collection[key]))
