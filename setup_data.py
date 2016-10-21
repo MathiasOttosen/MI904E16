@@ -2,6 +2,7 @@ import csv
 import shutil
 from skimage import io
 from skimage.color import rgb2gray
+import os
 
 
 # This method returns the filenames in the ImageCollection
@@ -15,6 +16,18 @@ def get_filenames(images):
     return(names)
 
 
+def new_load_images(extract_func,
+                    location='experiments/experiment_1/train_samples/'):
+    features, names = [], []
+    images = os.listdir(location)
+    for s in images:
+        features.append(extract_func(rgb2gray(io.imread(location + s))))
+        names.append(s)
+        print("{0} features loaded, latest is " + s + "\n"
+              .format(str(len(features))))
+    return(features, names)
+
+
 # A load function to be used with ImageCollection
 # It uses the standard imread but grayscales them first
 def imread_gray(f, img_num):
@@ -24,9 +37,9 @@ def imread_gray(f, img_num):
 # A method for loading a collection of images from the disk
 # The func parameter is the load function that is used in the ImageCollection
 def load_images(location='train/', func=io.imread):
-    # We use the io.ImageCollection object with conserve_memory=True
+    # We use the io.ImageCollection object
     return(io.ImageCollection(location + '*.jpg',
-                              conserve_memory=True, load_func=func))
+                              load_func=func))
 
 
 # A method for copying specific files from
