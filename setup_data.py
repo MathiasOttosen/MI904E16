@@ -1,31 +1,40 @@
 import csv
-import shutil
 from skimage import io
 from skimage.color import rgb2gray
 import os
 
 
 # This method returns the filenames in the ImageCollection
-def get_filenames(images):
+def get_filenames(images, test_images=None):
     names = []
     for s in images.files:
         # Since the filenames in the ImageCollection is relative paths
         # we split the string and return the last part of the string
         # i.e. the actual filename
         names.append(str.split(s, '/')[-1])
+    if test_images is not None:
+        test_names = get_filenames(test_images)
+        return(names, test_names)
     return(names)
 
 
-def new_load_images(extract_func,
-                    location='experiments/experiment_1/train_samples/'):
-    features, names = [], []
-    images = os.listdir(location)
-    for s in images:
-        features.append(extract_func(rgb2gray(io.imread(location + s))))
-        names.append(s)
-        print("{0} features loaded, latest is " + s + "\n"
-              .format(str(len(features))))
-    return(features, names)
+def get_target_values(labels, filenames, test_filenames=None):
+    targets = []
+    for s in filenames:
+        targets.append(labels[s])
+    if test_filenames is not None:
+        test_targets = get_target_values(labels, test_filenames)
+        return(targets, test_targets)
+    return(targets)
+
+
+# A method that crops an image at the center by crop_width
+def center_crop(image, crop_width):
+    cropped_image = image[image.shape[0]/2 - crop_width/2:
+                          image.shape[0]/2 + crop_width/2,
+                          image.shape[1]/2 - crop_width/2:
+                          image.shape[1]/2 + crop_width/2]
+    return(cropped_image)
 
 
 # A load function to be used with ImageCollection
@@ -34,31 +43,22 @@ def imread_gray(f, img_num):
     return rgb2gray(io.imread(f))
 
 
+def imread_crop(f, img_num):
+    return(center_crop(io.imread(f), 224))
+
+
 # A method for loading a collection of images from the disk
 # The func parameter is the load function that is used in the ImageCollection
-def load_images(location='train/', func=io.imread):
-    # We use the io.ImageCollection object
-    return(io.ImageCollection(location + '*.jpg',
-                              load_func=func))
+def load_images(location, func=imread_crop):
+    def load_train_images(location, func):
+        return(io.ImageCollection(os.path.join(location + 'train_samples/*.jpg'),
+                                  load_func=func))
 
-
-# A method for copying specific files from
-# one directory into another for training and test
-# With the limit parameter we can limit the amount of images that are copied
-def copy_samples(filenames, limit=0, src='train/',
-                 train_dst='train_samples/', test_dst='test_samples/'):
-    # First we make another limiter for the test data,
-    # which is 10 percent of the training data
-    if limit is not 0:
-        test_limit = int(round(limit * 0.1))
-    else:
-        test_limit = int(round(len(filenames) * 0.1))
-
-    # First we copy the test images and then the training images
-    for s in filenames[:test_limit-1]:
-        shutil.copy2(src + s, test_dst)
-    for s in filenames[test_limit:limit-1]:
-        shutil.copy2(src + s, train_dst)
+    def load_test_images(location, func):
+        return(io.ImageCollection(os.path.join(location + 'test_samples/*.jpg'),
+                                  load_func=func))
+    return(load_train_images(location, func),
+           load_test_images(location, func))
 
 
 # A method for loading the labels into a dictionary
@@ -75,38 +75,10 @@ def load_labels(labels='metadata/train_info.csv'):
         return(reader_dict)
 
 
-# A method for getting all the filenames for a particular style
-def find_filenames_by_style(style, labels=None):
-    if labels is None:
-        labels = load_labels()
-
-    fnames = []
-    # We iterate over all the key-value pairs in label
-    # and find the filenames that has the style
-    for t in labels.items():
-        if t[1] == style:
-            fnames.append(t[0])
-            continue
-        else:
-            continue
-
-    return(fnames)
-
-
-# A class for handling the features extracted from the images
-# Because the images would be too much to have in memory
-# this container makes use of the ImageCollection object and
-# applies the extraction method givin by the extract paramater
-class FeatureCollection:
-    # The class is instantiated with an ImageCollection and an extraction method
-    def __init__(self, coll, extract):
-        self.image_collection = coll
-        self.extraction_method = extract
-
-    def __len__(self):
-        return(len(self.image_collection))
-
-    # Here we apply the extraction method on the image returned from the
-    # ImageCollection
-    def __getitem__(self, key):
-        return(self.extraction_method(self.image_collection[key]))
+def setup_data(location):
+    images, test_images = load_images(location)
+    names, test_names = get_filenames(images, test_images=test_images)
+    labels = load_labels()
+    targets, test_targets = get_target_values(labels,
+                                              names, test_filenames=test_names)
+    return(images, test_images, targets, test_targets)
