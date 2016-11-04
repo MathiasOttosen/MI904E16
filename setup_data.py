@@ -49,7 +49,7 @@ def imread_crop(f, img_num):
 
 # A method for loading a collection of images from the disk
 # The func parameter is the load function that is used in the ImageCollection
-def load_images(location, func=imread_crop):
+def load_images(location, func=io.imread):
     def load_train_images(location, func):
         return(io.ImageCollection(os.path.join(location + 'train_samples/*.jpg'),
                                   load_func=func))
