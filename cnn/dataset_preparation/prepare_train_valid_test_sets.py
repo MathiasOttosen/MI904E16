@@ -5,12 +5,10 @@ import csv
 import hashlib
 
 
-SUBSET_CSV_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_subset.csv'
-CSV_TRAIN_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_train_subset.csv'
-CSV_VALID_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_valid_subset.csv'
-CSV_TEST_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_test_subset.csv'
-
-
+SUBSET_CSV_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_subset.csv'
+CSV_TRAIN_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_train_subset.csv'
+CSV_VALID_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_valid_subset.csv'
+CSV_TEST_FILE_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_test_subset.csv'
 
 USE_FAST_HASH = True  # hash only the path, not the file content, faster
 

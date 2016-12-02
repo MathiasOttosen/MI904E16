@@ -4,12 +4,13 @@ import csv
 import numpy as np
 
 DATASET_PATH = '/media/andrea/New Volume/train/train'
-TRAIN_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_train_subset.csv'
-TEST_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_valid_subset.csv'
-VALID_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/100_test_subset.csv'
+TRAIN_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_train_subset.csv'
+VALID_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_valid_subset.csv'
+TEST_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_test_subset.csv'
 
-BATCH_SIZE = 30
+BATCH_SIZE = 50
 NUM_OF_CLASSES = 5
+CROP = 28
 
 def decode_csv(csv_path):
     f = open(csv_path, 'rt')
@@ -57,7 +58,7 @@ class DataSet(object):
 
         if self._one_hot:
             self._labels = self.prepare_labels(self._labels)
-            print(self._labels.get_shape())
+            #print(self._labels.get_shape())
             #print(np.shape(self._labels))
 
         # # Convert shape from [num examples, rows, columns, depth]
@@ -104,68 +105,50 @@ class DataSet(object):
             # Finished epoch
             self._epochs_completed += 1
             # Shuffle the data
-            perm = np.arange(self._num_examples)
+            perm = np.arange(self._num_examples, dtype=np.int32)
             np.random.shuffle(perm)
             self._images_paths = self._images_paths[perm]
+            #print(self._labels.get_shape())
+            #print(type(perm))
             self._labels = self._labels[perm]
             # Start next epoch
             start = 0
             self._index_in_epoch = batch_size
             assert batch_size <= self._num_examples
         end = self._index_in_epoch
-        images = self.prepare_images(self._images_paths[start:end])
-        return images, self._labels[start:end]
+        images = self.prepare_images(self._images_paths[start:end], batch_size)
+        labels = self._labels[start:end]
+        return images, labels
 
     def prepare_labels(self, labels):
         one_hot_labels = []
         for l in labels:
-            one_hot_label = np.zeros(NUM_OF_CLASSES, dtype=np.int8)
+            one_hot_label = np.zeros(NUM_OF_CLASSES, dtype=np.int32)
             one_hot_label[l] = 1
             one_hot_labels.append(one_hot_label)
-        return tf.pack(one_hot_labels)
-        #return np.array(one_hot_labels, dtype=np.int8)
+        #return tf.pack(one_hot_labels)
+        return np.array(one_hot_labels, dtype=np.int32)
 
     def center_crop(self, image, desired_height=256, desired_width=256):
 
-        ratio = desired_width / float(desired_height)
-
-        image_shape = tf.shape(image)
-
-        # if we have grayscale images
-        image = tf.reshape(image, [image_shape[0], image_shape[1], 1])
-
-        height = tf.cast(image_shape[0], tf.float32)
-        width = tf.cast(image_shape[1], tf.float32)
-
-        condition = tf.greater(tf.mul(height, ratio), width)
-
-        target_width = tf.cast(tf.select(condition, width, tf.mul(height, ratio)), tf.int32)
-        target_height = tf.cast(tf.select(condition, tf.div(height, ratio), height), tf.int32)
-
         # could also do resizing first
-
-        image = tf.image.resize_image_with_crop_or_pad(image, target_height, target_width)
+        image = cv2.resize(image, (desired_height, desired_width))
+        image = np.reshape(image, [np.shape(image)[0] * np.shape(image)[1]])
+        image = np.multiply(image, 1.0 / 255.0)
 
         # we want input for nn to be small numbers
-        image = tf.image.resize_images(image, (desired_height, desired_width)) / 255.0
+        #image = tf.image.resize_images(image, (desired_height, desired_width)) / 255.0
 
         return image
 
-    def prepare_images(self, img_paths):
+    def prepare_images(self, img_paths, batch_size):
         images = []
         for p in img_paths:
             image = cv2.imread(p,0)
             if self._preprocess:
-                image = self.center_crop(image=image)
-
+                image = self.center_crop(image=image, desired_width=CROP, desired_height=CROP)
             images.append(image)
-
-        images = tf.pack(images)
-        print(images.get_shape())
-        if self._reshape:
-            images = tf.reshape(images, [BATCH_SIZE, 256*256])
-            print(images.get_shape())
-        return images
+        return np.array(images)
 
 img_paths, img_labels = decode_csv(TRAIN_PATH)
 train_data = DataSet(img_paths, img_labels, one_hot=True, reshape=True)
@@ -174,7 +157,7 @@ train_data = DataSet(img_paths, img_labels, one_hot=True, reshape=True)
 # part of code from https://www.tensorflow.org/versions/r0.8/tutorials/mnist/pros/index.html
 sess = tf.InteractiveSession()
 
-x = tf.placeholder(tf.float32, shape=[None, 256*256])
+x = tf.placeholder(tf.float32, shape=[None, CROP*CROP])
 y_ = tf.placeholder(tf.float32, shape=[None, NUM_OF_CLASSES])
 
 
@@ -193,26 +176,41 @@ def max_pool_2x2(x):
   return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                         strides=[1, 2, 2, 1], padding='SAME')
 
-W_conv1 = weight_variable([5, 5, 1, 32])
-b_conv1 = bias_variable([32])
+
+def convolutional_layer(input, stride, channels, output_depth):
+    W_conv = weight_variable([stride, stride, channels, output_depth])
+    b_conv = bias_variable([output_depth])
+
+    h_conv = tf.nn.relu(conv2d(input, W_conv) + b_conv)
+
+    return h_conv
+
+def max_pool_layer(input):
+    return max_pool_2x2(input)
 
 # because input in conv2d must have shape [batch, width, height, channels]
 # btw this doesn't make sense if the reshape is False, then he reshapes it again, silly
-x_image = tf.reshape(x, [-1,256,256,1])
+x_image = tf.reshape(x, [-1,CROP,CROP,1])
 
-h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2(h_conv1)
+conv1 = convolutional_layer(x_image, 5, 1, 32)
+maxpool1 = max_pool_layer(conv1)
 
-W_conv2 = weight_variable([5, 5, 32, 64])
-b_conv2 = bias_variable([64])
+conv2 = convolutional_layer(maxpool1, 5, 32, 64)
+maxpool2 = max_pool_layer(conv2)
 
-h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = max_pool_2x2(h_conv2)
+# conv3 = convolutional_layer(maxpool2, 5, 16, 32)
+# maxpool3 = max_pool_layer(conv3)
+#
+# conv4 = convolutional_layer(maxpool3, 5, 32, 64)
+# maxpool4 = max_pool_layer(conv4)
+#
+# conv5 = convolutional_layer(maxpool4, 5, 64, 128)
+# maxpool5 = max_pool_layer(conv5)
 
-W_fc1 = weight_variable([122 * 122 * 64, 1024])
+W_fc1 = weight_variable([7 * 7 * 64, 1024])
 b_fc1 = bias_variable([1024])
 
-h_pool2_flat = tf.reshape(h_pool2, [-1, 122*122*64])
+h_pool2_flat = tf.reshape(maxpool2, [-1, 7*7*64])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 keep_prob = tf.placeholder(tf.float32)
@@ -228,12 +226,20 @@ train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 sess.run(tf.initialize_all_variables())
-for i in range(20000):
-  batch = train_data.next_batch(BATCH_SIZE)
-  imgs, lbls = sess.run([batch[0], batch[1]])
-  if i%100 == 0:
+for i in range(1000):
+  imgs, lbls = train_data.next_batch(BATCH_SIZE)
+  #if i%100 == 0:
+  if True:
     train_accuracy = accuracy.eval(feed_dict={
         x:imgs, y_: lbls, keep_prob: 1.0})
     print("step %d, training accuracy %g"%(i, train_accuracy))
   train_step.run(feed_dict={x: imgs, y_: lbls, keep_prob: 0.5})
+
+
+img_paths_test, img_labels_test = decode_csv(TEST_PATH)
+test_data = DataSet(img_paths_test, img_labels_test, one_hot=True, reshape=True)
+test_batch = test_data.next_batch(test_data.num_examples)
+
+print("test accuracy %g"%accuracy.eval(feed_dict={
+    x: test_batch[0], y_: test_batch[1], keep_prob: 1.0}))
 
