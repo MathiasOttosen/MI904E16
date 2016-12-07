@@ -10,7 +10,7 @@ TEST_PATH = '/home/andrea/Documents/project/MI904E16/cnn/dataset_files/600_test_
 
 BATCH_SIZE = 50
 NUM_OF_CLASSES = 5
-CROP = 28
+CROP = 64
 
 def decode_csv(csv_path):
     f = open(csv_path, 'rt')
@@ -58,19 +58,6 @@ class DataSet(object):
 
         if self._one_hot:
             self._labels = self.prepare_labels(self._labels)
-            #print(self._labels.get_shape())
-            #print(np.shape(self._labels))
-
-        # # Convert shape from [num examples, rows, columns, depth]
-        # # to [num examples, rows*columns] (assuming depth == 1)
-        # if reshape:
-        #   assert images.shape[3] == 1
-        #   images = images.reshape(images.shape[0],
-        #                           images.shape[1] * images.shape[2])
-        # if dtype == dtypes.float32:
-        #   # Convert from [0, 255] -> [0.0, 1.0].
-        #   images = images.astype(numpy.float32)
-        #   images = numpy.multiply(images, 1.0 / 255.0)
 
 
     @property
@@ -131,13 +118,9 @@ class DataSet(object):
 
     def center_crop(self, image, desired_height=256, desired_width=256):
 
-        # could also do resizing first
         image = cv2.resize(image, (desired_height, desired_width))
         image = np.reshape(image, [np.shape(image)[0] * np.shape(image)[1]])
         image = np.multiply(image, 1.0 / 255.0)
-
-        # we want input for nn to be small numbers
-        #image = tf.image.resize_images(image, (desired_height, desired_width)) / 255.0
 
         return image
 
@@ -153,13 +136,11 @@ class DataSet(object):
 img_paths, img_labels = decode_csv(TRAIN_PATH)
 train_data = DataSet(img_paths, img_labels, one_hot=True, reshape=True)
 
-
 # part of code from https://www.tensorflow.org/versions/r0.8/tutorials/mnist/pros/index.html
 sess = tf.InteractiveSession()
 
 x = tf.placeholder(tf.float32, shape=[None, CROP*CROP])
 y_ = tf.placeholder(tf.float32, shape=[None, NUM_OF_CLASSES])
-
 
 def weight_variable(shape):
   initial = tf.truncated_normal(shape, stddev=0.1)
@@ -192,10 +173,10 @@ def max_pool_layer(input):
 # btw this doesn't make sense if the reshape is False, then he reshapes it again, silly
 x_image = tf.reshape(x, [-1,CROP,CROP,1])
 
-conv1 = convolutional_layer(x_image, 5, 1, 32)
+conv1 = convolutional_layer(x_image, 5, 1, 64)
 maxpool1 = max_pool_layer(conv1)
 
-conv2 = convolutional_layer(maxpool1, 5, 32, 64)
+conv2 = convolutional_layer(maxpool1, 5, 64, 128)
 maxpool2 = max_pool_layer(conv2)
 
 # conv3 = convolutional_layer(maxpool2, 5, 16, 32)
@@ -207,10 +188,10 @@ maxpool2 = max_pool_layer(conv2)
 # conv5 = convolutional_layer(maxpool4, 5, 64, 128)
 # maxpool5 = max_pool_layer(conv5)
 
-W_fc1 = weight_variable([7 * 7 * 64, 1024])
+W_fc1 = weight_variable([16 * 16 * 128, 1024])
 b_fc1 = bias_variable([1024])
 
-h_pool2_flat = tf.reshape(maxpool2, [-1, 7*7*64])
+h_pool2_flat = tf.reshape(maxpool2, [-1, 16*16*128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 keep_prob = tf.placeholder(tf.float32)
@@ -226,7 +207,7 @@ train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 sess.run(tf.initialize_all_variables())
-for i in range(1000):
+for i in range(600):
   imgs, lbls = train_data.next_batch(BATCH_SIZE)
   #if i%100 == 0:
   if True:
