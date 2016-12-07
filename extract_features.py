@@ -76,7 +76,7 @@ def get_top_N_values_in_hist(hist, n):
         t = tmp_hist.max()
         idx = np.where(hist == t)[0]
         if t == 0 and n != 1:
-            index.append(0)
+            index.append(idx[0])
             i += 1
             continue
         elif t == 1 and n != 1:
@@ -90,7 +90,7 @@ def get_top_N_values_in_hist(hist, n):
                 i += 1
             break
         if len(idx) != 1:
-            i += len(idx) - 1
+            i += len(idx)
         index.extend(idx)
         tmp_hist = np.delete(tmp_hist, idx)
         i += 1
@@ -98,12 +98,12 @@ def get_top_N_values_in_hist(hist, n):
     return(np.sort(top), np.sort(index))
 
 
-def quick_test(images, test_images=None):
+def construct_color_features(images, test_images=None):
     features = []
     for i in images:
-        try:
+        if len(i.shape) == 3:
             hsv_img = rgb2hsv(i)
-        except ValueError:
+        else:
             rgb_img = gray2rgb(i)
             hsv_img = rgb2hsv(rgb_img)
         hist, edges = make_hue_histogram(hsv_img, c=2)
@@ -112,9 +112,30 @@ def quick_test(images, test_images=None):
         val = np.mean(hsv_img[:, :, 2])
         f = [sat, val]
         f.extend(top)
+        # f = extract_color_from_segmented_image(hsv_img)
         features.append(f)
-    features = np.vstack(features)
+    features = np.round(np.vstack(features), decimals=3)
     if test_images is not None:
-        test_features = quick_test(test_images)
+        test_features = construct_color_features(test_images)
         return(features, test_features)
+    return(features)
+
+
+def extract_color_from_segmented_image(image):
+    segments = segment_image(image, 3, 3)
+    features = []
+    h, s, v = [], [], []
+    for seg in segments:
+        hist, edges = make_hue_histogram(seg, c=2)
+        idx = get_top_N_values_in_hist(hist, 1)[1]
+        sat = np.mean(seg[:, :, 1])
+        val = np.mean(seg[:, :, 2])
+        idx = edges[idx]
+        h.append(idx)
+        s.append(sat)
+        v.append(val)
+    h = np.std(h)
+    s = np.std(s)
+    v = np.std(v)
+    features.extend((h, s, v))
     return(features)
