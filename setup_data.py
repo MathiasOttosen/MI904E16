@@ -28,15 +28,6 @@ def get_target_values(labels, filenames, test_filenames=None):
     return(targets)
 
 
-# A method that crops an image at the center by crop_width
-def center_crop(image, crop_width):
-    cropped_image = image[image.shape[0]/2 - crop_width/2:
-                          image.shape[0]/2 + crop_width/2,
-                          image.shape[1]/2 - crop_width/2:
-                          image.shape[1]/2 + crop_width/2]
-    return(cropped_image)
-
-
 # A load function to be used with ImageCollection
 # It uses the standard imread but grayscales them first
 def imread_gray(f, img_num):
@@ -75,10 +66,42 @@ def load_labels(labels='metadata/train_info.csv'):
         return(reader_dict)
 
 
-def setup_data(location):
+def setup_data(location, labels=None):
     images, test_images = load_images(location)
     names, test_names = get_filenames(images, test_images=test_images)
-    labels = load_labels()
+    labels = load_labels() if labels is None else labels
     targets, test_targets = get_target_values(labels,
                                               names, test_filenames=test_names)
     return(images, test_images, targets, test_targets)
+
+
+def split_classes(location, labels, classes, step=5, factor=0.25):
+    images, test_images = load_images(location)
+
+    def make_image_list(classes, labels, images, step, factor):
+        d = dict()
+        for c in classes:
+            d[c] = []
+        for s in images.files:
+            d[labels[str.split(s, '/')[-1]]].append(s)
+        i_list = []
+        c = 0
+        while c < len(classes):
+            names = []
+            for n in classes[c: c + step]:
+                names.extend(d[n])
+            ic = io.ImageCollection(names[:int(factor*len(names))], conserve_memory=True)
+            i_list.append(ic)
+            c += step
+        return(i_list)
+
+    files = make_image_list(classes, labels, images, step, factor)
+    test_files = make_image_list(classes, labels, test_images, step, factor)
+    names, targets, test_targets = [], [], []
+    for l in files:
+        names = get_filenames(l)
+        targets.append(get_target_values(labels, names))
+    for l in test_files:
+        names = get_filenames(l)
+        test_targets.append(get_target_values(labels, names))
+    return(files, test_files, targets, test_targets)

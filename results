@@ -1,0 +1,75 @@
+Line experiment 1
+ Precision score: 0.982825409108
+ Recall Score: 0.950542822678
+ F1 score: 0.966414595227
+Color experiment 1
+ Precision score: 0.983183482941
+ Recall Score: 0.991556091677
+ F1 score: 0.987352037987
+Combined experiment 1
+ Precision score: 0.982825409108
+ Recall Score: 0.950542822678
+ F1 score: 0.966414595227
+Line experiment 2
+ Precision score: 1.0
+ Recall Score: 1.0
+ F1 score: 1.0
+Color experiment 2
+ Precision score: 1.0
+ Recall Score: 1.0
+ F1 score: 1.0
+Combined experiment 2
+ Precision score: 1.0
+ Recall Score: 1.0
+ F1 score: 1.0
+Line experiment 3
+ Precision score: 0.876324474553
+ Recall Score: 0.663366336634
+ F1 score: 0.730948094809
+Color experiment 3
+ Precision score: 0.811783158514
+ Recall Score: 0.90099009901
+ F1 score: 0.854063531353
+Combined experiment 3
+ Precision score: 0.877487791009
+ Recall Score: 0.673267326733
+ F1 score: 0.738658711444
+Line experiment 4
+ Precision score: 0.75523393842
+ Recall Score: 0.549618320611
+ F1 score: 0.61967116427
+Color experiment 4
+ Precision score: 0.744070858342
+ Recall Score: 0.862595419847
+ F1 score: 0.798961331498
+Combined experiment 4
+ Precision score: 0.767211922937
+ Recall Score: 0.557251908397
+ F1 score: 0.626184654689
+Line experiment 5
+ Precision score: 0.793287566743
+ Recall Score: 0.727272727273
+ F1 score: 0.756164383562
+Color experiment 5
+ Precision score: 0.765625
+ Recall Score: 0.875
+ F1 score: 0.816666666667
+Combined experiment 5
+ Precision score: 0.793287566743
+ Recall Score: 0.727272727273
+ F1 score: 0.756164383562
+Full line experiment
+ Precision score: 0.421678166241
+ Recall Score: 0.544780728845
+ F1 score: 0.463774609496
+Full color experiment
+ Precision score: 0.257780426307
+ Recall Score: 0.507720815318
+ F1 score: 0.341947161156
+Full combined experiment
+ Precision score: 0.419980588031
+ Recall Score: 0.542927733169
+ F1 score: 0.463312346815
+Total amount of paintings:
+ Training: 14565
+ Test: 1619
