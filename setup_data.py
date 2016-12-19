@@ -1,6 +1,5 @@
 import csv
 from skimage import io
-from skimage.color import rgb2gray
 import os
 
 
@@ -26,16 +25,6 @@ def get_target_values(labels, filenames, test_filenames=None):
         test_targets = get_target_values(labels, test_filenames)
         return(targets, test_targets)
     return(targets)
-
-
-# A load function to be used with ImageCollection
-# It uses the standard imread but grayscales them first
-def imread_gray(f, img_num):
-    return rgb2gray(io.imread(f))
-
-
-def imread_crop(f, img_num):
-    return(center_crop(io.imread(f), 224))
 
 
 # A method for loading a collection of images from the disk
@@ -89,8 +78,9 @@ def split_classes(location, labels, classes, step=5, factor=0.25):
         while c < len(classes):
             names = []
             for n in classes[c: c + step]:
-                names.extend(d[n])
-            ic = io.ImageCollection(names[:int(factor*len(names))], conserve_memory=True)
+                style = d[n]
+                names.extend(style[:int(factor*len(style))])
+            ic = io.ImageCollection(names, conserve_memory=True)
             i_list.append(ic)
             c += step
         return(i_list)
